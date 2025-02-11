@@ -1,0 +1,6 @@
+---
+source: src/test.rs
+expression: s
+extension: cbor
+snapshot_kind: binary
+---
