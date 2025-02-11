@@ -8,6 +8,7 @@ categories = ["encoding"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/maartendeprez/serde_fast_flatten"
+readme = "Readme.md"
 
 [dependencies]
 serde = { version = "1.0.217", features = ["derive"] }
