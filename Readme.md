@@ -45,9 +45,9 @@ deserializes a simple structure with `serde_json`. On my machine
 | deserialize/fast_flatten      | 124.03 µs | 124.20 µs | 124.38 µs |
 
 When _serializing_, there is little difference between the
-`Deserialize` implementation auto-derived by `serde` and the one
-written using `serde_fast_flatten`. The unflattened representation
-serializes slower, probably due to the increased output size.
+implementation auto-derived by `serde` and the one written using
+`serde_fast_flatten`. The unflattened representation serializes
+slower, probably due to the increased output size.
 
 For deserialization, however, there is a big difference between the
 performance of `serde`'s implementation and the one by
