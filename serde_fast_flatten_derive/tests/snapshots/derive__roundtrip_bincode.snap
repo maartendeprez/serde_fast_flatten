@@ -1,0 +1,6 @@
+---
+source: serde_fast_flatten_derive/tests/derive.rs
+expression: s
+extension: bincode
+snapshot_kind: binary
+---
