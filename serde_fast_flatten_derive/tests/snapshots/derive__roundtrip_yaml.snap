@@ -1,0 +1,12 @@
+---
+source: serde_fast_flatten_derive/tests/derive.rs
+expression: s
+---
+first_name: John
+last_name: Lennon
+street: Long and Winding Road
+house_number: 42
+city: Strawberry Fields
+postal_code: '1234'
+state: null
+country: Nowhere Land
