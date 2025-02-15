@@ -2,11 +2,11 @@ use serde::de::MapAccess;
 
 use crate::FieldId;
 
-pub trait DeserializeFields<'de> {
+pub trait DeserializeFields<'de>: serde::de::Deserialize<'de> {
     type FieldDeserializer: FieldDeserializer<'de, Value = Self>;
 }
 
-pub trait FieldDeserializer<'de>: Sized {
+pub trait FieldDeserializer<'de>: Default {
     type Value;
 
     // fn wants_field(&self, field: BorrowedFieldId<'_>) -> bool;
