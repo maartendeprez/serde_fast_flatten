@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use serde_derive_internals::{ast as serde_ast, Ctxt, Derive};
-use syn::DeriveInput;
+use syn::{parse_quote, punctuated::Punctuated, DeriveInput, Expr, GenericParam, Token};
 
 pub(crate) fn deserialize_fields(input: DeriveInput) -> TokenStream {
     let cx = Ctxt::new();
@@ -14,6 +14,51 @@ pub(crate) fn deserialize_fields(input: DeriveInput) -> TokenStream {
             serde_ast::Style::Struct => {
                 let struct_name = &container.ident;
                 let struct_name_str = container.attrs.name().deserialize_name();
+
+                let (_impl_generics, ty_generics, _where_clause) =
+                    container.generics.split_for_impl();
+
+                let mut fields_generics = container.generics.clone();
+                let mut visitor_generics = container.generics.clone();
+
+                fields_generics.params.insert(0, parse_quote!('de));
+
+                if !vec.is_empty() {
+                    vec.iter().for_each(|field| {
+                        let ty = field.ty;
+                        if field.attrs.flatten() {
+                            fields_generics
+                                .make_where_clause()
+                                .predicates
+                                .push(parse_quote!(#ty: DeserializeFields<'de>));
+                            visitor_generics
+                                .make_where_clause()
+                                .predicates
+                                .push(parse_quote!(#ty: SerializeFields + DeserializeFields<'de>));
+                        } else {
+                            visitor_generics
+                                .make_where_clause()
+                                .predicates
+                                .push(parse_quote!(#ty: Deserialize<'de>));
+                        }
+                    });
+                }
+
+                let (fields_impl_generics, fields_ty_generics, fields_where_clause) =
+                    fields_generics.split_for_impl();
+                let (_visitor_impl_generics, visitor_ty_generics, visitor_where_clause) =
+                    visitor_generics.split_for_impl();
+
+                let phantoms = container
+                    .generics
+                    .params
+                    .iter()
+                    .map::<Expr, _>(|param| match param {
+                        GenericParam::Lifetime(lifetime_param) => parse_quote!(&#lifetime_param ()),
+                        GenericParam::Type(type_param) => parse_quote!(#type_param),
+                        GenericParam::Const(const_param) => parse_quote!(#const_param),
+                    })
+                    .collect::<Punctuated<Expr, Token![,]>>();
 
                 fn get_field_name<'a>(field: &'a serde_ast::Field<'_>) -> &'a syn::Ident {
                     match &field.member {
@@ -41,6 +86,17 @@ pub(crate) fn deserialize_fields(input: DeriveInput) -> TokenStream {
                         quote!(Option<#ty>)
                     };
                     quote!(#fields #field_name: #field_type,)
+                });
+
+                let field_defaults = vec.iter().fold(quote!(), |fields, field| {
+                    let field_name = get_field_name(field);
+                    let ty = &field.ty;
+                    let field_default = if field.attrs.flatten() {
+                        quote!(<<#ty as DeserializeFields<'de>>::FieldDeserializer as Default>::default())
+                    } else {
+                        quote!(None)
+                    };
+                    quote!(#fields #field_name: #field_default,)
                 });
 
                 let deserialize_seq_fields =
@@ -135,16 +191,28 @@ pub(crate) fn deserialize_fields(input: DeriveInput) -> TokenStream {
                         FieldId, SerializeFields
                     };
 
-                    #[derive(Default)]
-                    struct Fields<'de> {
+                    struct Fields #fields_ty_generics #fields_where_clause {
                         #fields
                         _marker: std::marker::PhantomData<&'de ()>
                     }
 
-                    struct Visitor;
+                    #[automatically_derived]
+                    impl #fields_impl_generics Default for Fields #fields_ty_generics #fields_where_clause {
+                        fn default() -> Self {
+                            Self {
+                                #field_defaults
+                                _marker: std::marker::PhantomData,
+                            }
+                        }
+                    }
 
-                    impl<'de> serde::de::Visitor<'de> for Visitor {
-                        type Value = #struct_name;
+                    struct Visitor #visitor_ty_generics {
+                        _marker: std::marker::PhantomData<(#phantoms)>
+                    }
+
+                    #[automatically_derived]
+                    impl #fields_impl_generics serde::de::Visitor<'de> for Visitor #visitor_ty_generics #visitor_where_clause {
+                        type Value = #struct_name #ty_generics;
 
                         fn expecting(
                             &self,
@@ -185,23 +253,26 @@ pub(crate) fn deserialize_fields(input: DeriveInput) -> TokenStream {
                         }
                     }
 
-                    impl<'de> Deserialize<'de> for #struct_name {
+                    #[automatically_derived]
+                    impl #fields_impl_generics Deserialize<'de> for #struct_name #ty_generics #visitor_where_clause {
                         #[inline]
                         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
                         where
                             D: Deserializer<'de>,
                         {
                             const FIELDS: &[&str] = &[#field_names_str];
-                            deserializer.deserialize_struct(#struct_name_str, FIELDS, Visitor)
+                            deserializer.deserialize_struct(#struct_name_str, FIELDS, Visitor { _marker: std::marker::PhantomData })
                         }
                     }
 
-                    impl<'de> DeserializeFields<'de> for #struct_name {
-                        type FieldDeserializer = Fields<'de>;
+                    #[automatically_derived]
+                    impl #fields_impl_generics DeserializeFields<'de> for #struct_name #ty_generics #visitor_where_clause {
+                        type FieldDeserializer = Fields #fields_ty_generics;
                     }
 
-                    impl<'de> FieldDeserializer<'de> for Fields<'de> {
-                        type Value = #struct_name;
+                    #[automatically_derived]
+                    impl #fields_impl_generics FieldDeserializer<'de> for Fields #fields_ty_generics #visitor_where_clause {
+                        type Value = #struct_name #ty_generics;
 
                         #[inline]
                         fn deserialize_field<A: MapAccess<'de>>(

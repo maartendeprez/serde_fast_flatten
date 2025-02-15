@@ -1,0 +1,11 @@
+---
+source: serde_fast_flatten_derive/tests/generics.rs
+expression: s
+---
+{
+  "items": [
+    "item 1"
+  ],
+  "start": 0,
+  "limit": 10
+}
