@@ -1,5 +1,5 @@
 use insta::{assert_binary_snapshot, assert_snapshot};
-use serde_fast_flatten_derive::{DeserializeFields, SerializeFields};
+use serde_fast_flatten::{DeserializeFields, SerializeFields};
 
 #[derive(SerializeFields, DeserializeFields, PartialEq, Eq, Debug)]
 struct Address {
