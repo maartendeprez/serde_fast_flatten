@@ -558,7 +558,7 @@ dependencies = [
 
 [[package]]
 name = "serde_fast_flatten"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bincode",
  "bitcode",
@@ -573,7 +573,7 @@ dependencies = [
 
 [[package]]
 name = "serde_fast_flatten_derive"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bincode",
  "bitcode",
