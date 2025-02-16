@@ -19,8 +19,8 @@ includes some tests and a benchmark (see below).
 
 In `Cargo.toml`, add the following dependency:
 
-```
-serde_fast_flatten = { version = "0.1.1", features = ["derive"] }
+```toml
+serde_fast_flatten = { version = "0.1.3", features = ["derive"] }
 ```
 
 In your code, replace the auto-derive macros `serde::Serialize` and
@@ -29,7 +29,7 @@ In your code, replace the auto-derive macros `serde::Serialize` and
 containing a `#[serde(flatten)]` annotation and all structs referenced by such
 annotation.
 
-```
+```rust
 // use serde::{Serialize, Deserialize};
 use serde_fast_flatten::{SerializeFields, DeserializeFields};
 
@@ -103,6 +103,21 @@ unflattened representation.
   deserializer otherwise)
 - Add support for all serde attributes
 - Add more example types and formats to test suite
+
+## Stability
+
+This project is in alpha stage. Even though there are currently no guarantees,
+the intention is to progressively enhance the crate for its primary goal of
+providing drop-in replacements for the `serde` auto-derive macros.
+
+This means that if the auto-derive macros currently work for your structures
+(i.e. the code compiles and the `Serialize` and `Deserialize` implementations
+work as expected), we intend to keep them working in the future. The best way to
+ensure stability for your use-case is to contribute tests.
+
+The traits added by this crate (`SerializeFields`, `DeserializeFields`,
+`FieldDeserializer`) are subject to change in function of features to be added
+to the auto-derive macros.
 
 ## License
 
